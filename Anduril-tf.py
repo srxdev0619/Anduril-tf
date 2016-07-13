@@ -6,6 +6,9 @@ import time
 
 class Anduril:
     def __init__(self):
+        """
+        This method initializes the neural network and its parameters
+        """
         self.weights = []
         self.biases = []
         self.best_weights = []
@@ -35,7 +38,6 @@ class Anduril:
         self.num_layers = len(arch) + 2
         self.classreg = classreg
         self.costfunc = costfunc
-        #self.epochs = epochs
 
         f = open(input_file,"r")
 
@@ -76,10 +78,9 @@ class Anduril:
         self.input_test = np.array(self.input_test, dtype=np.float32)
         self.output_train = np.array(self.output_train, dtype=np.float32)
         self.output_test = np.array(self.output_test, dtype=np.float32)
-        #print self.input_train
 
 
-    def train(self,epochs = 100,Opt = "Adam", learning_rate = 0.0, hist_file = None, log_file = None, net_name = None):
+    def train(self,epochs,Opt = "Adam", learning_rate = 0.0, hist_file = None, log_file = None, net_name = None):
         self.epochs = epochs
         if hist_file:
             f = open(hist_file, "w")
@@ -109,7 +110,7 @@ class Anduril:
 
             net_train = self.__trainbatch(net_error, Opt, learning_rate)
 
-            net_eval = self.__rmse(net_out, output_placeholder)
+            net_eval = self.__errors(net_out, output_placeholder)
 
             sess = tf.Session()
             if self.restored:
@@ -164,17 +165,6 @@ class Anduril:
                 print " "
             if hist_file:
                 net_best_out = self.__best_activations(sess)
-                """if net_name:  DELETE THIS 
-                    save_dict = {}
-                    for kl in range(self.num_layers -1):
-                        save_dict["weights" + str(kl)] = self.best_weights[kl]
-                        save_dict["biases" + str(kl)] = self.best_biases[kl]
-                    #print save_dict
-                    save_params = tf.train.Saver(save_dict)
-                    save_params.save(sess,"." + net_name + "_ckpt")
-                    f_net = open("." + net_name + "_config", "w")
-                    f_net.write(str(self.arch[1:-1]).replace("[","").replace("]",""))
-                    f_net.close()"""
                 net_hist_errors = self.__get_hist_errors(net_best_out, self.output_test, sess)
                 self.__histtofile(hist_file, net_hist_errors)
 
@@ -207,13 +197,14 @@ class Anduril:
                 activations = tf.add(tf.nn.tanh(tf.matmul(activations,self.weights[n]) + self.biases[n]), 0.1*(tf.matmul(activations,self.weights[n]) + self.biases[n]))
         return activations
 
-    def __errors(self,pred_output, act_output):
+    """def __errors(self,pred_output, act_output):
         if self.classreg == 1:
-            l2 = tf.nn.l2_loss(tf.sub(pred_output, act_output))
+            #l2 = tf.nn.l2_loss(tf.sub(pred_output, act_output))
+            diff = tf.sub(pred_output, act_output)
             errors = tf.reduce_mean(l2)
-        return errors
+        return errors"""
 
-    def __rmse(self,pred_output, act_output):
+    def __errors(self,pred_output, act_output):
         if self.classreg == 1:
             #l2 = tf.nn.l2_loss(tf.sub(pred_output, act_output))
             diff = tf.sub(pred_output, act_output)
