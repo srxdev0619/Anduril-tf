@@ -215,8 +215,9 @@ class Anduril:
 
     def __rmse(self,pred_output, act_output):
         if self.classreg == 1:
-            l2 = tf.nn.l2_loss(tf.sub(pred_output, act_output))
-            errors = tf.reduce_mean(l2)
+            #l2 = tf.nn.l2_loss(tf.sub(pred_output, act_output))
+            diff = tf.sub(pred_output, act_output)
+            errors = tf.reduce_mean(tf.mul(diff,diff))
         return errors
 
     def __trainbatch(self, errors, Opt, learning_rate = 0.0):
