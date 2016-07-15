@@ -6,7 +6,7 @@ import numpy as np
 import random
 import time
 import six
-
+import sys
 
 class Anduril:
     def __init__(self):
@@ -38,6 +38,15 @@ class Anduril:
         return
 
     def init(self, arch, input_file, classreg = 1, costfunc = 1, sep1 = ",", sep2 = " "):
+        
+        if (type(arch) == str):
+            arch = arch.split("-")
+            arch = map(int, arch)
+        elif (type(arch) == list):
+            arch = map(int, arch)
+        else:
+            print("Incorrect format of Architecture!")
+            
         self.numhid = len(arch)
         self.num_layers = len(arch) + 2
         self.classreg = classreg
@@ -85,6 +94,7 @@ class Anduril:
 
 
     def train(self,epochs,Opt = "Adam", learning_rate = 0.0, hist_file = None, log_file = None, net_name = None):
+        print("Training...")
         self.epochs = epochs
         if hist_file:
             f = open(hist_file, "w")
@@ -97,14 +107,6 @@ class Anduril:
         with tf.Graph().as_default():
             seed = int(time.time())
             tf.set_random_seed(seed)
-            #sess = tf.Session()
-            #if self.restored:
-            #    saver = tf.train.Saver()
-            #    load_path = "." + self.net_name + "_ckpt"
-            #    saver.restore(sess, load_path)
-            #else:
-            #    init = tf.initialize_all_variables()
-            #    sess.run(init)
             
             input_placeholder = tf.placeholder(tf.float32, shape=(None,self.arch[0]), name = 'input_placeholder')
             output_placeholder = tf.placeholder(tf.float32, shape=(None,self.arch[-1]), name = 'output_placeholder')
@@ -168,11 +170,13 @@ class Anduril:
                     min_test_rmse = test_rmse
                 #start_testcode
                 #print shp
-                print("Epoch number: ",str(n))
-                print("The current train rmse is: ", train_rmse)
-                print("The current test rmse is: ", test_rmse)
-                print(" ")
+                #print("Epoch number: " + str(n) + "\r",)
+                self.__printProgress(n+1,self.epochs)
+                #print("The current train rmse is: ", train_rmse)
+                #print("The current test rmse is: ", test_rmse)
+                #print("\r")
                 #start_testcode
+            print("Training complete!")
             if hist_file:
                 net_best_out = self.__best_activations(sess)
                 net_hist_errors = self.__get_hist_errors(net_best_out, self.output_test, sess)
@@ -191,7 +195,27 @@ class Anduril:
             return
         else:
             return
-
+        
+    def __printProgress(self, iteration, total, prefix = '', suffix = '', decimals = 2, barLength = 100):
+        """
+        Call in a loop to create terminal progress bar
+        @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : number of decimals in percent complete (Int)
+        barLength   - Optional  : character length of bar (Int)
+        """
+        filledLength    = int(round(barLength * iteration / float(total)))
+        percents        = round(100.00 * (iteration / float(total)), decimals)
+        bar             = '#' * filledLength + '-' * (barLength - filledLength)
+        sys.stdout.write('\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix)),
+        sys.stdout.flush()
+        if iteration == total:
+            sys.stdout.write('\n')
+            sys.stdout.flush()
+            return
                     
     def __feed_forward(self,inputs):
         for n in range(self.num_layers - 1):
