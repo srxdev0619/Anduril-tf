@@ -8,6 +8,11 @@ import time
 import six
 import sys
 
+#TODO: Implement feature learning
+#TODO: Implement ensemble feature learning
+#TODO: Implement autoencoders
+#TODO: 
+
 class Anduril:
     def __init__(self):
         """
@@ -93,7 +98,7 @@ class Anduril:
         self.output_test = np.array(self.output_test, dtype=np.float32)
 
 
-    def train(self,epochs,Opt = "Adam", learning_rate = 0.0, hist_file = None, log_file = None, net_name = None):
+    def train(self,epochs,Opt = "Adam", learning_rate = 0.0, hist_file = None, log_file = None, net_name = None, dropout = 1.0):
         print("Training...")
         self.epochs = epochs
         if hist_file:
@@ -110,8 +115,9 @@ class Anduril:
             
             input_placeholder = tf.placeholder(tf.float32, shape=(None,self.arch[0]), name = 'input_placeholder')
             output_placeholder = tf.placeholder(tf.float32, shape=(None,self.arch[-1]), name = 'output_placeholder')
+            keep_prob = tf.placeholder("float")
 
-            net_out = self.__feed_forward(input_placeholder)
+            net_out = self.__feed_forward(input_placeholder, keep_prob)
 
             net_error = self.__errors(net_out,output_placeholder)
 
@@ -137,15 +143,15 @@ class Anduril:
                 while end < self.num_train:
                     train_batch_input = self.input_train[start:end]
                     train_batch_output = self.output_train[start:end]
-                    feed_dict = {input_placeholder: train_batch_input, output_placeholder: train_batch_output}
+                    feed_dict = {input_placeholder: train_batch_input, output_placeholder: train_batch_output, keep_prob:dropout}
                     _,batch_train_rmse = sess.run([net_train,net_error], feed_dict=feed_dict)
                     start = start + 10
                     end = end + 10
-                feed_test_dict = {input_placeholder: self.input_test, output_placeholder: self.output_test}
+                feed_test_dict = {input_placeholder: self.input_test, output_placeholder: self.output_test, keep_prob:1.0}
                 test_rmse = (sess.run(net_error, feed_dict=feed_test_dict))**(0.5)
                 
                 if log_file:
-                    feed_train_dict = {input_placeholder: self.input_train, output_placeholder: self.output_train}
+                    feed_train_dict = {input_placeholder: self.input_train, output_placeholder: self.output_train, keep_prob=1.0}
                     train_rmse = (sess.run(net_error, feed_dict=feed_train_dict))**(0.5)
                     f_test = open(log_file + "_test.dat","a")
                     f_test.write(str(n) + " " + str(test_rmse) + "\n")
@@ -217,7 +223,7 @@ class Anduril:
             sys.stdout.flush()
             return
                     
-    def __feed_forward(self,inputs):
+    def __feed_forward(self, inputs, keep_prob):
         for n in range(self.num_layers - 1):
             weight_name = "weights" + str(n)
             bias_name = "biases" + str(n)
@@ -229,6 +235,7 @@ class Anduril:
         if self.classreg == 1:
             for n in range(self.num_layers - 1):
                 activations = tf.add(tf.nn.tanh(tf.matmul(activations,self.weights[n]) + self.biases[n]), 0.1*(tf.matmul(activations,self.weights[n]) + self.biases[n]))
+                activations = tf.nn.dropout(activations, keep_prob)
         return activations
 
     def __errors(self,pred_output, act_output):
