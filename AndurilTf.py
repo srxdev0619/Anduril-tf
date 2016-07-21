@@ -87,7 +87,7 @@ class Anduril:
         self.arch.insert(0,in_lent)
         self.arch.append(out_lent)
         self.num_train = int(self.num_data*0.8)
-        self.num_test = self.num_data - self.num_test
+        self.num_test = self.num_data - self.num_train
         self.input_train = self.input_data[:self.num_train]
         self.input_test = self.input_data[self.num_train:]
         self.output_train = self.output_data[:self.num_train]
