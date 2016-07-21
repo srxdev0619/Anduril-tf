@@ -235,7 +235,8 @@ class Anduril:
         if self.classreg == 1:
             for n in range(self.num_layers - 1):
                 activations = tf.add(tf.nn.tanh(tf.matmul(activations,self.weights[n]) + self.biases[n]), 0.1*(tf.matmul(activations,self.weights[n]) + self.biases[n]))
-                activations = tf.nn.dropout(activations, keep_prob)
+                if n != (self.num_layers - 2):
+                    activations = tf.nn.dropout(activations, keep_prob)
         return activations
 
     def __errors(self,pred_output, act_output):
