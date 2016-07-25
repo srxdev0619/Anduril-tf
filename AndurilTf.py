@@ -63,7 +63,7 @@ class Anduril:
         for line in f:
             temp_data.append(line)
 
-        random.shuffle(temp_data)
+        #random.shuffle(temp_data)
         self.num_data = len(temp_data)
         in_lent = 0
         out_lent = 0
