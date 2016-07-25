@@ -151,7 +151,7 @@ class Anduril:
                 test_rmse = (sess.run(net_error, feed_dict=feed_test_dict))**(0.5)
                 
                 if log_file:
-                    feed_train_dict = {input_placeholder: self.input_train, output_placeholder: self.output_train, keep_prob=1.0}
+                    feed_train_dict = {input_placeholder: self.input_train, output_placeholder: self.output_train, keep_prob:1.0}
                     train_rmse = (sess.run(net_error, feed_dict=feed_train_dict))**(0.5)
                     f_test = open(log_file + "_test.dat","a")
                     f_test.write(str(n) + " " + str(test_rmse) + "\n")
@@ -165,7 +165,7 @@ class Anduril:
                         save_params = tf.train.Saver()
                         save_params.save(sess,"." + net_name + "_ckpt")
                         f_net = open("." + net_name + "_config", "w")
-                        f_net.write(str(self.arch[1:-1]).replace("[","").replace("]",""))
+                        f_net.write(str(self.arch).replace("[","").replace("]",""))
                         f_net.close()
                     if len(self.best_weights) > 0:
                         del self.best_weights[:]
@@ -188,12 +188,100 @@ class Anduril:
                 net_hist_errors = self.__get_hist_errors(net_best_out, self.output_test, sess)
                 self.__histtofile(hist_file, net_hist_errors)
 
+
+    def test_file(self, net_name, input_file, sep1 = ",", sep2 = " ",classreg = 1, costfunc = 1):
+        self.restored = True
+        self.net_name = net_name
+        
+        if input_file != "":
+            f_net = open("." + net_name + "_config", "r")
+            arch = f_net.readline().split(",")
+            for n in range(len(arch)):
+                arch[n] = int(arch[n])
+            f_net.close()
+        if (type(arch) == str):
+            arch = arch.split("-")
+            arch = map(int, arch)
+        elif (type(arch) == list):
+            arch = map(int, arch)
+        else:
+            print("Incorrect format of Architecture!")
+            
+        self.numhid = len(arch)
+        self.num_layers = len(arch)
+        self.classreg = classreg
+        self.costfunc = costfunc
+
+        f = open(input_file,"r")
+
+        temp_data = []
+        for line in f:
+            temp_data.append(line)
+
+        #random.shuffle(temp_data)
+        self.num_data = len(temp_data)
+        in_lent = 0
+        out_lent = 0
+        for n in range(self.num_data):
+            l = temp_data[n].split(sep2)
+            input_l = l[0]
+            output_l = l[1]
+            in_temp = self.__fin_parser(input_l,sep1)
+            out_temp = self.__fin_parser(output_l,sep1)
+            if (n == 0):
+                in_lent = len(in_temp)
+                out_lent = len(out_temp)
+            else:
+                if (len(in_temp) != in_lent) or (len(out_temp) != out_lent):
+                    print("The length of input or output vector varies!")
+                    self.__reset("init")
+                    return 
+            self.input_data.append(in_temp)
+            self.output_data.append(out_temp)
+            
+        self.arch = arch
+        if (self.arch[0] != in_lent) or (self.arch[-1] != out_lent):
+            print(in_lent, self.arch[0])
+            print("File input or output type do not match NN architecture")
+            self.__reset("init")
+            return
+        with tf.Graph().as_default():
+            seed = int(time.time())
+            tf.set_random_seed(seed)
+            
+            input_placeholder = tf.placeholder(tf.float32, shape=(None,self.arch[0]), name = 'input_placeholder')
+            output_placeholder = tf.placeholder(tf.float32, shape=(None,self.arch[-1]), name = 'output_placeholder')
+            keep_prob = tf.placeholder("float")
+
+            net_out = self.__feed_forward(input_placeholder, keep_prob)
+
+            net_error = self.__errors(net_out,output_placeholder)
+
+            #net_train = self.__trainbatch(net_error, Opt, learning_rate)
+
+            #net_eval = self.__errors(net_out, output_placeholder)
+            
+            sess = tf.Session()
+            
+            if self.restored:
+                saver = tf.train.Saver()
+                load_path = "." + self.net_name + "_ckpt"
+                saver.restore(sess, load_path)
+            feed_dict = {input_placeholder:self.input_data, output_placeholder:self.output_data, keep_prob:1.0}
+            rmse = (sess.run(net_error,feed_dict=feed_dict))**(0.5)
+            print("RMSE: ", rmse)
+            self.__reset("init")
+        return rmse
+        
+
     def restore(self, net_name, input_file = ""):
         self.restored = True
         self.net_name = net_name
         if input_file != "":
             f_net = open("." + net_name + "_config", "r")
             arch = f_net.readline().split(",")
+            del arch[0]
+            del arch[-1]
             for n in range(len(arch)):
                 arch[n] = int(arch[n])
             f_net.close()
