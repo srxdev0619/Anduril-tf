@@ -280,6 +280,12 @@ class Anduril:
         if input_file != "":
             f_net = open("." + net_name + "_config", "r")
             arch = f_net.readline().split(",")
+            f_check = open(input_file, "r")
+            line = f_check.readline()
+            l1 = line.split(" ")
+            if (len(l1[0].split(",")) != int(arch[0])) or (len(l1[1].split(",")) != int(arch[-1])):
+                print("File input or output type do not match NN architecture")
+                return
             del arch[0]
             del arch[-1]
             for n in range(len(arch)):
